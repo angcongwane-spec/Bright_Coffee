@@ -1,39 +1,72 @@
+select *
+from workspace.default.bright_coffee_shop_analysis_transactions
+limit 100;
+
+-- Check number of store locations
+SELECT DISTINCT store_location
+FROM workspace.default.bright_coffee_shop_analysis_transactions;
+
+--Check number of product categories
+SELECT DISTINCT product_category
+FROM workspace.default.bright_coffee_shop_analysis_transactions
+ORDER BY product_category ASC;
+
+------------------------------------------------------------------------------------------------------------------------
+--Complete coffee shop code
+------------------------------------------------------------------------------------------------------------------------
 --Bright coffee shop code segments
 SELECT*
-FROM BRIGHT.COFFEE.SHOP;
+FROM workspace.default.bright_coffee_shop_analysis_transactions;
 
 --Count the total number of transactions
 SELECT COUNT(transaction_id) AS total_number_of_transactions
-FROM BRIGHT.COFFEE.SHOP;
+FROM workspace.default.bright_coffee_shop_analysis_transactions;
 
 --Distinguish all store locations
 SELECT DISTINCT STORE_ID,
 STORE_LOCATION
-FROM BRIGHT.COFFEE.SHOP
+FROM workspace.default.bright_coffee_shop_analysis_transactions
 ORDER BY STORE_ID ASC;
 
 
 --Calculate shop opening time
 SELECT MIN (TRANSACTION_TIME) AS Opening_time
-FROM BRIGHT.COFFEE.SHOP;
+FROM workspace.default.bright_coffee_shop_analysis_transactions
 
---Show shop closing time
+--Shop closing time
 SELECT MAX (transaction_time) AS Closing_time
-FROM BRIGHT.COFFEE.SHOP;
+FROM workspace.default.bright_coffee_shop_analysis_transactions;
 
 --Opening and closing times
 SELECT MIN (transaction_time) AS Opening_time, 
 MAX (Transaction_time) AS Closing_time
-FROM BRIGHT.COFFEE.SHOP;
+FROM workspace.default.bright_coffee_shop_analysis_transactions;
 
---Calculate revenue and determine lowest to highest revenue by store location
+
+------------------------------------------------------------------------------------------------------------------------
+--Revenue calculations
+------------------------------------------------------------------------------------------------------------------------
+--Calculate revenue from highest to lowest
+select store_location, sum (Transaction_qty * Unit_price) as Revenue
+from workspace.default.bright_coffee_shop_analysis_transactions
+group by store_location
+order by revenue desc;
+
+
+select store_location, max (Transaction_qty * Unit_price) as highest_sales_per_store,
+                       avg (transaction_qty * unit_price) as minimum_sales_per_store,
+                       min (transaction_qty * unit_price) as lowest_sales_per_store
+from workspace.default.bright_coffee_shop_analysis_transactions
+group by store_location;
+
+--Determine lowest to highest revenue by store location
 SELECT STORE_LOCATION, SUM (Transaction_qty * Unit_price) AS revenue,
 CASE
     WHEN revenue = 230057.25 THEN 'Lowest sales'
     WHEN revenue = 232243.91 THEN 'Medium sales'
     WHEN revenue = 236511.17 THEN 'Highest sales'
 END AS Sales_ranking_by_store
-FROM BRIGHT.COFFEE.SHOP
+FROM workspace.default.bright_coffee_shop_analysis_transactions
 GROUP BY STORE_LOCATION
 ORDER BY Revenue ASC;
 
@@ -46,12 +79,8 @@ CASE
     WHEN Transaction_time BETWEEN '16:00:00' AND '19:59:59' THEN 'Evening'
     WHEN Transaction_time >= '20:00:00' THEN 'Night'
 END AS Time_bucket
-FROM BRIGHT.COFFEE.SHOP
-GROUP BY Product_category,
-Store_location,
-Transaction_date,
-Transaction_time,
-Time_bucket
+FROM workspace.default.bright_coffee_shop_analysis_transactions
+group by all
 ORDER BY Revenue ASC;
 
 --Calculate sales per season of the year
@@ -64,7 +93,7 @@ SELECT
     WHEN MONTH(Transaction_date) IN (6, 7, 8) THEN 'Winter'
     WHEN MONTH(Transaction_date) IN (9, 10, 11) THEN 'Spring'
   END AS Season
-FROM BRIGHT.COFFEE.SHOP
+FROM workspace.default.bright_coffee_shop_analysis_transactions
 WHERE Transaction_date >= '2023-01-01'
 GROUP BY Store_location, 
   CASE
@@ -76,20 +105,18 @@ GROUP BY Store_location,
 ORDER BY  Store_location, Season;
 
 --Test code
-SELECT 
-  Store_location,
-  MONTH(Transaction_date) AS Month,
+SELECT store_location,
+  MONTHNAME (Transaction_date) AS Month_name,
   SUM(Transaction_qty * Unit_price) AS Revenue
-FROM BRIGHT.COFFEE.SHOP
---WHERE Transaction_date >= '2023-01-01'
-GROUP BY ALL;
---Store_location, MONTH(Transaction_date);
+FROM workspace.default.bright_coffee_shop_analysis_transactions
+GROUP BY Store_location, Month_name;
+
 
 --Data consisting of categorized data
-SELECT 
-transaction_date, 
+SELECT
+        transaction_date, 
         DAYNAME(transaction_date) AS day_name,
-        CASE 
+        CASE
         WHEN day_name IN ('Sat','Sun') THEN 'Weekend'
         ELSE 'Weekday'
         END AS day_classification,
@@ -114,7 +141,7 @@ transaction_date,
           unit_price, 
           transaction_date
           transaction_qty,
-  COUNT(DISTINCT transaction_id) AS number_of_sales,
-  SUM(transaction_qty*unit_price) AS Revenue
-  FROM BRIGHT.COFFEE.SHOP
-  GROUP BY ALL;
+  COUNT (DISTINCT (transaction_id)) AS number_of_sales,
+  SUM(transaction_qty * unit_price) AS Revenue
+  FROM workspace.default.bright_coffee_shop_analysis_transactions
+  GROUP BY Store_location, season, day_name;
